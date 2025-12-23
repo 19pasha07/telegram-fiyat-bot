@@ -1,7 +1,7 @@
 import os
 import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters, CommandHandler
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -22,12 +22,17 @@ def get_usd_try():
     r = requests.get("https://api.exchangerate.host/latest?base=USD&symbols=TRY")
     return r.json()["rates"]["TRY"]
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📱 Model yazın\nÖrnek: A52"
+    )
 
-    if text.upper() in DATA:
-        context.user_data["model"] = text.upper()
-        brands = list(DATA[text.upper()].keys())
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip().upper()
+
+    if text in DATA:
+        context.user_data["model"] = text
+        brands = list(DATA[text].keys())
 
         msg = "Hangi marka?\n"
         for i, b in enumerate(brands, 1):
@@ -55,5 +60,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.clear()
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.run_polling()
