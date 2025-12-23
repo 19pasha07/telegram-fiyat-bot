@@ -19,33 +19,31 @@ DATA = {
 }
 
 def get_usd_try():
-    r = requests.get("https://api.exchangerate.host/latest?base=USD&symbols=TRY")
+    r = requests.get("https://api.exchangerate.host/latest?base=USD&symbols=TRY", timeout=10)
     return r.json()["rates"]["TRY"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📱 Model yazın\nÖrnek: A52"
-    )
+    await update.message.reply_text("📱 Model yazın\nÖrnek: A52")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip().upper()
 
+    # Model girildi
     if text in DATA:
         context.user_data["model"] = text
         brands = list(DATA[text].keys())
-
         msg = "Hangi marka?\n"
         for i, b in enumerate(brands, 1):
             msg += f"{i}️⃣ {b}\n"
-
         await update.message.reply_text(msg)
         return
 
-    if "model" in context.user_data:
+    # Marka seçildi
+    if "model" in context.user_data and text.isdigit():
         model = context.user_data["model"]
         brands = list(DATA[model].keys())
 
-        if text.isdigit() and 1 <= int(text) <= len(brands):
+        if 1 <= int(text) <= len(brands):
             brand = brands[int(text)-1]
             usd_try = get_usd_try()
 
@@ -53,7 +51,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for part, price in DATA[model][brand].items():
                 final_usd = price + 17
                 final_try = round(final_usd * usd_try)
-                msg += f"• {part}: {final_usd} $\n  💰 {final_try} ₺\n\n"
+                msg += (
+                    f"🔧 {part}\n"
+                    f"• {final_usd} $\n"
+                    f"• {final_try} ₺\n\n"
+                )
 
             msg += "ℹ️ Not: -17 $ çıkart"
             await update.message.reply_text(msg)
