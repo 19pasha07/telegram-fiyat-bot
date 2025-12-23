@@ -23,28 +23,37 @@ def get_usd_try():
     return r.json()["rates"]["TRY"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
     await update.message.reply_text("📱 Model yazın\nÖrnek: A52")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip().upper()
 
-    # Model girildi
+    # MODEL YAZILDI
     if text in DATA:
+        context.user_data.clear()
         context.user_data["model"] = text
         brands = list(DATA[text].keys())
+
         msg = "Hangi marka?\n"
         for i, b in enumerate(brands, 1):
             msg += f"{i}️⃣ {b}\n"
+
         await update.message.reply_text(msg)
         return
 
-    # Marka seçildi
-    if "model" in context.user_data and text.isdigit():
+    # MARKA SEÇİLDİ
+    if text.isdigit():
+        if "model" not in context.user_data:
+            await update.message.reply_text("❗ Önce model yazın\nÖrnek: A52")
+            return
+
         model = context.user_data["model"]
         brands = list(DATA[model].keys())
+        choice = int(text)
 
-        if 1 <= int(text) <= len(brands):
-            brand = brands[int(text)-1]
+        if 1 <= choice <= len(brands):
+            brand = brands[choice - 1]
             usd_try = get_usd_try()
 
             msg = f"📱 {brand} {model}\n\n"
@@ -60,6 +69,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += "ℹ️ Not: -17 $ çıkart"
             await update.message.reply_text(msg)
             context.user_data.clear()
+            return
+
+    # HATALI GİRİŞ
+    await update.message.reply_text("❓ Model yazın\nÖrnek: A52")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
